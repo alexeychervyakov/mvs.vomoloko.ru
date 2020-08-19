@@ -1018,15 +1018,21 @@ if(!($db===false)){
                 plan_message = '<br/>' + response.plan_results.message;
             }
             if (!(typeof response.stat.avg_check === 'undefined') && !(response.stat.error > 0) ){
+
                 if ( response.total_fine > 0) {
-                    $('#bonus').html( Math.round(response.stat.bonus * plan_scale + plan_bonus) + ' = 1% от ' + response.stat.sold + ' + бонус ' + response.stat.bonus_percent + ' - штраф ' + response.total_fine + ' руб.' +
-                        '<br/> Ваш ср. чек: ' + response.stat.avg_check + ' ++ ' + response.stat.place + ' место++'+ plan_message) ;
+                    $('#bonus').html( Math.round(response.stat.bonus * plan_scale + plan_bonus) + ' = '+ response.stat.percent + '% от ' + response.stat.sold +
+                        //' + бонус ' + response.stat.bonus_percent +
+                        ' - штраф ' + response.total_fine + ' руб.' +
+                        //'<br/> Ваш ср. чек: ' + response.stat.avg_check + ' ++ ' + response.stat.place + ' место++'+ plan_message
+                        '') ;
 
                 } else {
-                    $('#bonus').html(Math.round(response.stat.bonus * plan_scale + plan_bonus) + ' = 1% от ' + response.stat.sold + ' + бонус ' + response.stat.bonus_percent +
-                        '<br/> Ваш ср. чек: ' + response.stat.avg_check + ' ++ ' + response.stat.place + ' место++'+ plan_message) ;
+                    $('#bonus').html(Math.round(response.stat.bonus * plan_scale + plan_bonus) + ' = '+ response.stat.percent + '% от ' + response.stat.sold +
+                        //' + бонус ' + response.stat.bonus_percent +
+                        //'<br/> Ваш ср. чек: ' + response.stat.avg_check + ' ++ ' + response.stat.place + ' место++'+ plan_message
+                        '') ;
                 }
-                $('#best_shop').html( response.stat.best_shop + ' Ср. чек: ** ' + response.stat.max_avg_check ) + ' **';
+                //$('#best_shop').html( response.stat.best_shop + ' Ср. чек: ** ' + response.stat.max_avg_check ) + ' **';
 
             } else {
                 $('#bonus').html(plan_message);

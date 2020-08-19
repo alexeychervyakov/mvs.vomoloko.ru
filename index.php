@@ -1,8 +1,8 @@
 <?php
 
 require_once('auth.php');
-include_once ('operations.php');
-include_once ('ReportManager.php');
+include_once('operations.php');
+include_once('ReportManager.php');
 
 $db=false;
 
@@ -833,22 +833,27 @@ if(!($db===false)){
         if (!(typeof response.stat.avg_check === 'undefined') && !(response.stat.error > 0) ){
             var currentD = new Date();
             var startHappyHourD = new Date();
-            startHappyHourD.setHours(21,00,0); // 5.30 pm
+            startHappyHourD.setHours(12,00,0); // 5.30 pm
 
             if(currentD >= startHappyHourD ){
 
                 if ( response.total_fine > 0) {
-                    $('#bonus').html( Math.round(response.stat.bonus * plan_scale + plan_bonus) + ' = 1% от ' + response.stat.sold + ' + бонус ' + response.stat.bonus_percent + ' - штраф ' + response.total_fine + ' руб.' +
-                        '<br/> Ваш ср. чек: ' + response.stat.avg_check + ' ++ ' + response.stat.place + ' место++'+ plan_message) ;
+                    $('#bonus').html( Math.round(response.stat.bonus * plan_scale + plan_bonus) + ' = '+ response.stat.percent + '% от ' + response.stat.sold +
+                        //' + бонус ' + response.stat.bonus_percent +
+                        ' - штраф ' + response.total_fine + ' руб.' +
+                        //'<br/> Ваш ср. чек: ' + response.stat.avg_check + ' ++ ' + response.stat.place + ' место++'+ plan_message
+                    '') ;
 
                 } else {
-                    $('#bonus').html(Math.round(response.stat.bonus * plan_scale + plan_bonus) + ' = 1% от ' + response.stat.sold + ' + бонус ' + response.stat.bonus_percent +
-                        '<br/> Ваш ср. чек: ' + response.stat.avg_check + ' ++ ' + response.stat.place + ' место++'+ plan_message) ;
+                    $('#bonus').html(Math.round(response.stat.bonus * plan_scale + plan_bonus) + ' = '+ response.stat.percent + '% от ' + response.stat.sold +
+                        //' + бонус ' + response.stat.bonus_percent +
+                        //'<br/> Ваш ср. чек: ' + response.stat.avg_check + ' ++ ' + response.stat.place + ' место++'+ plan_message
+                        '') ;
                 }
-                $('#best_shop').html( response.stat.best_shop + ' Ср. чек: ** ' + response.stat.max_avg_check ) + ' **';
+                //$('#best_shop').html( response.stat.best_shop + ' Ср. чек: ** ' + response.stat.max_avg_check ) + ' **';
 
             } else {
-                $('#bonus').html("Станет известна при обновлении страницы после 21.00") ;
+                $('#bonus').html("Станет известна при обновлении страницы после 12.00") ;
             }
 
         } else {

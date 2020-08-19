@@ -121,6 +121,7 @@ function get_sale_bonus($db, $shop_id, $date){
 
         $data = $db->query($sql);
         $res = array('error' => '1');
+
         $total_sold = 0;
         if (null != $data) {
             $place = 0;
@@ -147,23 +148,24 @@ function get_sale_bonus($db, $shop_id, $date){
                 $res['worse_avg_check'] = round($row['avg_check'], 2);
 
             }
-
+            $res['percent'] = 1.5;
             if ($place == 0) {
                 $res = array('error' => '2');
             } elseif (!array_key_exists('place', $res)) {
                 $res['bonus_percent'] = 0;
                 $res['bonus'] = 0;
             } else {
-                $percent = 1;
+                $percent = $res['percent'];
                 if ($shop_id==999999) {
                     $percent = 5;
+                    $res['percent'] = $percent;
                 }
                 //премиальный чек всем магазинам первой половины
                 if ($res['place'] * 2 <= $place && $res['bonus_flags'] <> 0 ) {
                     $bonus_part = $total_sold / 2 / ($place / 2 + 1) / $place / 25;
                     $bonus_percent = round($bonus_part * ($place / 2 + 1 - $res['place']), 2);
                     $res['bonus_percent'] = round($bonus_percent, 2);
-                    $res['bonus'] = round($res['sold'] / 100 * $percent + $bonus_percent, 2);
+                    $res['bonus'] = round($res['sold'] / 100 * $percent, 2);
                 } else {
                     $res['bonus_percent'] = '0';
                     $res['bonus'] = round($res['sold'] / 100 * $percent, 2);
