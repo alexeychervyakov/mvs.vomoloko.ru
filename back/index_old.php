@@ -13,7 +13,6 @@ if(isset($_POST['date'])){
 
 $db = new MysqlWrapper();
 $ip = $_SERVER['REMOTE_ADDR'];
-$ip='188.187.108.49';
 $sql = "SELECT id, name, address from retailpoints where ipv4 = '".$ip."';";
 
 
@@ -35,12 +34,13 @@ if (null != $data ){
 
 if(isset($shopname)){
 
-    $date_dt=date_create($dates);
-    $date_week_ago = date_add(clone $date_dt,date_interval_create_from_date_string("7 days ago"));
+    /*  Average check bonus routines
+       $date_week_ago = date_add($date_dt,date_interval_create_from_date_string("7 days ago"));
 
-    $newAvgCheck= round(get_avg_check($shopname,$date_dt,$db));
-    $oldAvgCheck= round(get_avg_check($shopname,$date_week_ago,$db));
-    $bonus = $newAvgCheck > $oldAvgCheck ? $newAvgCheck : 0;
+        $newAvgCheck= get_avg_check($shopname,$date_dt,$db);
+        $oldAvgCheck= get_avg_check($shopname,$date_week_ago,$db);
+        $bonus = $newAvgCheck > $oldAvgCheck ? $newAvgCheck : 0;
+    */
 }
 $db->disconnect();
 
@@ -74,7 +74,7 @@ if ($shopname !== false) {
 			}
 			if (!action_visible($data[2])) $data[3] = '';
 		}
-		$last_operations = array_reverse(array_slice($csv, -5));
+		$last_operations = array_reverse(array_slice($csv, -15));
 	} else {
 		file_put_contents($filename, iconv('utf-8', 'windows-1251', '"Дата";"Время";"Действие";"Сумма";"Продавец";"Комментарий"')."\r\n");
 	}
@@ -93,7 +93,7 @@ if ($shopname !== false) {
 				$csv[] = $data;
 			}
 		}
-		$last_whoworked = array_reverse(array_slice($csv, -5));
+		$last_whoworked = array_reverse(array_slice($csv, -15));
 	} else {
 		file_put_contents($filename, iconv('utf-8', 'windows-1251', '"Дата";"Время";"Продавец";"Сколько";"Комментарий"')."\r\n");
 	}
@@ -112,21 +112,21 @@ if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
 	<meta charset="utf-8">
 	<title>Во!Молоко</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link href="css/jquery-ui.min.css" rel="stylesheet">
-	<link href="css/bootstrap.min.css" rel="stylesheet">
-	<link href="css/bootstrap-datetimepicker.css" rel="stylesheet">
-	<link href="css/autocomplete.css" rel="stylesheet">
-	<link href="css/style.css" rel="stylesheet">
-	<script type="text/javascript" src="js/jquery-1.11.3.min.js"></script>
-	<script type="text/javascript" src="js/jquery-ui.min.js"></script>
-	<script type="text/javascript" src="js/jquery.autocomplete.js"></script>
-	<script type="text/javascript" src="js/moment.js"></script>
-	<script type="text/javascript" src="js/locale/ru.js"></script>
-	<script type="text/javascript" src="js/bootstrap.min.js"></script>
-	<script type="text/javascript" src="js/bootstrap-datetimepicker.js"></script>
+	<link href="../css/jquery-ui.min.css" rel="stylesheet">
+	<link href="../css/bootstrap.min.css" rel="stylesheet">
+	<link href="../css/bootstrap-datetimepicker.css" rel="stylesheet">
+	<link href="../css/autocomplete.css" rel="stylesheet">
+	<link href="../css/style.css" rel="stylesheet">
+	<script type="text/javascript" src="../js/jquery-1.11.3.min.js"></script>
+	<script type="text/javascript" src="../js/jquery-ui.min.js"></script>
+	<script type="text/javascript" src="../js/jquery.autocomplete.js"></script>
+	<script type="text/javascript" src="../js/moment.js"></script>
+	<script type="text/javascript" src="../js/locale/ru.js"></script>
+	<script type="text/javascript" src="../js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="../js/bootstrap-datetimepicker.js"></script>
 </head>
 <body>
-	<div class="logo"><img src="images/logo.png"></div>
+	<div class="logo"><img src="../images/logo.png"></div>
 	<div class="container-fluid main-wrapper">
 		<div id="tabs">
 			<div class="row">
@@ -135,7 +135,7 @@ if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
 						<ul>
 							<li><a href="#tab-1">Касса</a></li>
 							<li><a href="#tab-2">Перемещения</a></li>
-							<li><a href="getresults.php">Отчеты</a></li>
+							<li><a href="../getresults.php">Отчеты</a></li>
 						</ul>
 					</div>
 				</div>
@@ -255,11 +255,9 @@ if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
 					<div class="col-sm-7">
 						<h4>Закрытие прошлой смены: <strong><span id="previous-end-amount"><?php echo $previousEndAmount; ?></span></strong></h4>
 						<h4>Сумма в начале смены: <strong><span id="start-amount"><?php echo $startAmount; ?></span></strong></h4><br/>
-                        <h4>Средний чек на прошлой неделе: <strong><span id="old-avg-check"><?php echo $oldAvgCheck; ?></span></strong></h4>
-                        <h4>Средний чек сегодня: <strong><span id="new-avg-check"><?php echo $newAvgCheck."(".(($oldAvgCheck>$newAvgCheck)?("".($newAvgCheck-$oldAvgCheck)):("+".($newAvgCheck-$oldAvgCheck))).")"; ?></span></strong></h4>
-                        <h3>Бонус сегодня: <strong><span id="bonus"><?php echo $bonus; ?></span></strong></h3>
-						
-						<br />
+                        <br />
+                        <h3><strong><span id="bonus-message"><?php echo $bonus_message; ?></span></strong></h3>-->
+                        <br />
 						<h4>Операции за смену</h4>
 						<table class="table table-bordered table-condensed" id="table-operations">
 							<thead>
@@ -459,25 +457,25 @@ if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
 					} else {
 						$(this).parents('.form-group').removeClass('has-error');
 						if ($(this).val() != '' && event.which == 13) {
-                            var founded = false;
-                            $('#table > tbody > tr').each(function () {
-                                if ($('td:nth-child(3)', this).html() == $('#item').val()) {
-                                    var quantity = 0;
-                                    if (!editMode) {
-                                        quantity = parseFloat($('td:nth-child(4)', this).html().replace(',', '.'));
-                                        if (isNaN(quantity)) quantity = 0;
-                                    }
-                                    quantity += parseFloat($('#quantity').val().replace(',', '.').replace(' ', ''));
-                                    $('td:nth-child(4)', this).hide().html(quantity.toString().replace('.', ',')).fadeIn();
-                                    founded = true;
-                                    editMode = false;
-                                    return false;
-                                }
-                            });
-                            if (!founded && selected) {
-                                $('<tr><td>' + selected.data[0] + '</td><td>' + selected.data[1] + '</td><td>' + $('#item').val() + '</td><td>' + $('#quantity').val().replace('.', ',').replace(' ', '') + '</td><td class="text-center"><button class="btn btn-primary btn-xs button-delete-item"><span class="glyphicon glyphicon-remove"></span></button></td><td class="text-center"><button class="btn btn-primary btn-xs button-edit-item"><span class="glyphicon glyphicon-pencil"></span></button></td></tr>').prependTo('#table > tbody').hide().fadeIn();
-                            }
-                            $('#quantity').val('');
+							var founded = false;
+							$('#table > tbody > tr').each(function() {
+								if ($('td:nth-child(3)', this).html() == $('#item').val()) {
+									var quantity = 0;
+									if (!editMode) {
+										quantity = parseFloat($('td:nth-child(4)', this).html().replace(',', '.'));
+										if (isNaN(quantity)) quantity = 0;
+									}
+									quantity += parseFloat($('#quantity').val().replace(',', '.').replace(' ', ''));
+									$('td:nth-child(4)', this).hide().html(quantity.toString().replace('.', ',')).fadeIn();
+									founded = true;
+									editMode = false;
+									return false;
+								}
+							});
+							if (!founded && selected) {
+								$('<tr><td>' + selected.data[0] + '</td><td>' + selected.data[1] + '</td><td>' + $('#item').val() + '</td><td>' + $('#quantity').val().replace('.', ',').replace(' ', '') + '</td><td class="text-center"><button class="btn btn-primary btn-xs button-delete-item"><span class="glyphicon glyphicon-remove"></span></button></td><td class="text-center"><button class="btn btn-primary btn-xs button-edit-item"><span class="glyphicon glyphicon-pencil"></span></button></td></tr>').prependTo('#table > tbody').hide().fadeIn();
+							}
+							$('#quantity').val('');
 							$('#item').val('').focus();
 							selected = null;
 							event.preventDefault();
@@ -730,10 +728,6 @@ if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
 							$('<tr><td>' + response.whoworked[i][2] + '</td><td>' + response.whoworked[i][3] + '</td><td>' + response.whoworked[i][4] + '</td></tr>').prependTo('#table-whoworked > tbody');
 						}
 					}
-					$('span#bonus').innerHTML = response.bonus;
-                    $('span#new-avg-check').innerHTML = response.nac."(".((response.oac>response.nac)?("".(response.nac-response.oac)):("+".(response.nac-response.oac))).")";
-                    $('span#old-avg-check').innerHTML = response.oac;
-
 				}
 			});
 		}

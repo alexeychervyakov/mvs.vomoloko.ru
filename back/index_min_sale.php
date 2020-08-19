@@ -1,109 +1,82 @@
 <?php
 
-include 'db.conf.php';
-include 'operations.php';
+require_once('auth.php');
+include_once('operations.php');
+include_once('settings.php');
 
-require_once('settings.php');
+$db=false;
 
 $dates = date('Ymd');
 if(isset($_POST['date'])){
     list($d, $m, $y) = explode('.', $_POST['date']);
     $dates = $y.$m.$d;
 }
-
-$db = new MysqlWrapper();
-$ip = $_SERVER['REMOTE_ADDR'];
-$sql = "SELECT id, name, address from retailpoints where ipv4 = '".$ip."';";
-
-
-$data = $db->query($sql);
-
-if (null != $data && null!=($row = $data->fetch_assoc())){
-    $shopname = $row['name'];
-    $shop_id = $row['id'];
-}
-
-$cashiers = array();
-$sql = "SELECT id, name from marketers where retired is NULL order by name;";
-$data = $db->query($sql);
-if (null != $data ){
-    while(null!=($row = $data->fetch_assoc())) {
-        $cashiers[] = $row['name'];
-    }
-}
-
 if(isset($shopname)){
 
-    /*  Average check bonus routines
-       $date_week_ago = date_add($date_dt,date_interval_create_from_date_string("7 days ago"));
+    $db = new MysqlWrapper();
+    $date_dt=date_create($dates);
+    $product_group_name = 'АТАГ ВЕСОВЫЕ';
 
-        $newAvgCheck= get_avg_check($shopname,$date_dt,$db);
-        $oldAvgCheck= get_avg_check($shopname,$date_week_ago,$db);
-        $bonus = $newAvgCheck > $oldAvgCheck ? $newAvgCheck : 0;
-    */
-}
-$db->disconnect();
+    $min_to_sell_amount = get_minimum_amount_to_sale($shopname,$product_group_name,$date_dt,$db);
+    $sold_amount = get_amount_sold($shopname,$product_group_name,$date_dt,$db);
+    if($sold_amount >= $min_to_sell_amount * 2)  {
+        $bonus_message="План по продаже ".$product_group_name." перевыполнен на ".round($sold_amount/$min_to_sell_amount*100-100).
+            "%! <br/>Бонус: 200 Рублей!";
+    } elseif ($sold_amount <$min_to_sell_amount) {
+        $bonus_message="Осталось продать: ".round(1000 * ($min_to_sell_amount - $sold_amount),0)." грамм ".$product_group_name.
+            " <br/>Депремирование 50%";
+    } else {
+        $bonus_message="План по продаже ".$product_group_name." перевыполнен на ".round($sold_amount/$min_to_sell_amount*100-100).
+            "%! <br/>Для получения бонуса осталось продать: ".round(1000 * (2*$min_to_sell_amount - $sold_amount),0)." грамм";
+    }
 
-$datadir = rtrim($datadir, '/').'/';
-if (!is_dir($datadir.'operations')) mkdir($datadir.'operations');
-if (!is_dir($datadir.'whoworked')) mkdir($datadir.'whoworked');
 
-$previousEndAmount = 'не известно';
-$startAmount = '-';
-$endAmount = '-';
+/*  Average check bonus routines
+   $date_week_ago = date_add($date_dt,date_interval_create_from_date_string("7 days ago"));
 
-$last_operations = array();
-if ($shopname !== false) {
-	$filename = $datadir.'operations/'.$shopname.'_'.date('Y').'.'.date('m').'.csv';
-	if (file_exists($filename)) {
-		$csv = array();
-		$rows = file($filename);
-		array_shift($rows);
-		foreach ($rows as $row) {
-			$data = str_getcsv(trim(iconv('windows-1251', 'utf-8', $row)), ';');
-			if ($data[0] == date('Ymd')) {
-				$csv[] = $data;
-				if ($data[2] == $actions['start']) {
-					$startAmount = $data[3];
-				}
-				if ($data[2] == $actions['end']) {
-					$endAmount = $data[3];
-				}
-			} elseif ($data[2] == $actions['end']) {
-				$previousEndAmount = $data[3];
-			}
-			if (!action_visible($data[2])) $data[3] = '';
-		}
-		$last_operations = array_reverse(array_slice($csv, -15));
-	} else {
-		file_put_contents($filename, iconv('utf-8', 'windows-1251', '"Дата";"Время";"Действие";"Сумма";"Продавец";"Комментарий"')."\r\n");
-	}
+    $newAvgCheck= get_avg_check($shopname,$date_dt,$db);
+    $oldAvgCheck= get_avg_check($shopname,$date_week_ago,$db);
+    $bonus = $newAvgCheck > $oldAvgCheck ? $newAvgCheck : 0;
+*/
 }
 
-$last_whoworked = array();
-if ($shopname !== false) {
-	$filename = $datadir.'whoworked/'.$shopname.'_'.date('Y').'.'.date('m').'.csv';
-	if (file_exists($filename)) {
-		$csv = array();
-		$rows = file($filename);
-		array_shift($rows);
-		foreach ($rows as $row) {
-			$data = str_getcsv(trim(iconv('windows-1251', 'utf-8', $row)), ';');
-			if ($data[0] == date('Ymd')) {
-				$csv[] = $data;
-			}
-		}
-		$last_whoworked = array_reverse(array_slice($csv, -15));
-	} else {
-		file_put_contents($filename, iconv('utf-8', 'windows-1251', '"Дата";"Время";"Продавец";"Сколько";"Комментарий"')."\r\n");
-	}
-}
+if(isset($shop_id)) {
+    if($db===false) {
+        $db = new MysqlWrapper();
+    }
 
-$state_operation = '';
-$js_pre_operation = 'false';
-if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
-	$state_operation = ' disabled';
-	$js_pre_operation = 'true';
+    $ops=load_actions($db, $shop_id, $dates, $actions);
+
+    if(isset($ops['start'])) {
+        $startAmount=$ops['start'];
+    } else {
+        $startAmount = '-';
+    }
+    if(isset($ops['end'])) {
+        $endAmount=$ops['end'];
+    } else {
+        $endAmount = '-';
+    }
+    $last_operations = $ops['csv'];
+
+    //load $previousEndAmount
+    if(isset($ops['pse'])) {
+        $previousEndAmount=$ops['pse'];
+    } else {
+        $previousEndAmount = '-';
+    }
+
+    $last_whoworked = load_shifts($db, $shop_id, $dates);
+
+    $state_operation = '';
+    $js_pre_operation = 'false';
+    if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
+        $state_operation = ' disabled';
+        $js_pre_operation = 'true';
+    }
+}
+if(!($db===false)){
+    $db->disconnect();
 }
 ?>
 <!DOCTYPE html>
@@ -112,21 +85,21 @@ if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
 	<meta charset="utf-8">
 	<title>Во!Молоко</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link href="css/jquery-ui.min.css" rel="stylesheet">
-	<link href="css/bootstrap.min.css" rel="stylesheet">
-	<link href="css/bootstrap-datetimepicker.css" rel="stylesheet">
-	<link href="css/autocomplete.css" rel="stylesheet">
-	<link href="css/style.css" rel="stylesheet">
-	<script type="text/javascript" src="js/jquery-1.11.3.min.js"></script>
-	<script type="text/javascript" src="js/jquery-ui.min.js"></script>
-	<script type="text/javascript" src="js/jquery.autocomplete.js"></script>
-	<script type="text/javascript" src="js/moment.js"></script>
-	<script type="text/javascript" src="js/locale/ru.js"></script>
-	<script type="text/javascript" src="js/bootstrap.min.js"></script>
-	<script type="text/javascript" src="js/bootstrap-datetimepicker.js"></script>
+	<link href="../css/jquery-ui.min.css" rel="stylesheet">
+	<link href="../css/bootstrap.min.css" rel="stylesheet">
+	<link href="../css/bootstrap-datetimepicker.css" rel="stylesheet">
+	<link href="../css/autocomplete.css" rel="stylesheet">
+	<link href="../css/style.css" rel="stylesheet">
+	<script type="text/javascript" src="../js/jquery-1.11.3.min.js"></script>
+	<script type="text/javascript" src="../js/jquery-ui.min.js"></script>
+	<script type="text/javascript" src="../js/jquery.autocomplete.js"></script>
+	<script type="text/javascript" src="../js/moment.js"></script>
+	<script type="text/javascript" src="../js/locale/ru.js"></script>
+	<script type="text/javascript" src="../js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="../js/bootstrap-datetimepicker.js"></script>
 </head>
 <body>
-	<div class="logo"><img src="images/logo.png"></div>
+	<div class="logo"><img src="../images/logo.png"></div>
 	<div class="container-fluid main-wrapper">
 		<div id="tabs">
 			<div class="row">
@@ -135,7 +108,7 @@ if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
 						<ul>
 							<li><a href="#tab-1">Касса</a></li>
 							<li><a href="#tab-2">Перемещения</a></li>
-							<li><a href="getresults.php">Отчеты</a></li>
+							<li><a href="../getresults.php">Отчеты</a></li>
 						</ul>
 					</div>
 				</div>
@@ -254,10 +227,10 @@ if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
 					
 					<div class="col-sm-7">
 						<h4>Закрытие прошлой смены: <strong><span id="previous-end-amount"><?php echo $previousEndAmount; ?></span></strong></h4>
-						<h4>Сумма в начале смены: <strong><span id="start-amount"><?php echo $startAmount; ?></span></strong></h4><br/>
+						<h4>Сумма в начале смены: <strong><span id="start-amount"><?php echo $startAmount; ?></span></strong></h4>
                         <br />
-                        <h3><strong><span id="bonus-message"><?php echo $bonus_message; ?></span></strong></h3>-->
-                        <br />
+                        <h3><?php echo $bonus_message; ?></h3>-->
+						<br />
 						<h4>Операции за смену</h4>
 						<table class="table table-bordered table-condensed" id="table-operations">
 							<thead>
@@ -562,7 +535,6 @@ if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
 						$('#amount').focus();
 					}
 				}
-				return false;
 			});
 			
 			$('#cashier').change(function() {
@@ -728,6 +700,9 @@ if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
 							$('<tr><td>' + response.whoworked[i][2] + '</td><td>' + response.whoworked[i][3] + '</td><td>' + response.whoworked[i][4] + '</td></tr>').prependTo('#table-whoworked > tbody');
 						}
 					}
+                    $('span#bonus').innerHTML = response.bonus;
+                    $('span#new-avg-check').innerHTML = response.nac."(".((response.oac>response.nac)?("".(response.nac-response.oac)):("+".(response.nac-response.oac))).")";
+                    $('span#old-avg-check').innerHTML = response.oac;
 				}
 			});
 		}
@@ -740,11 +715,13 @@ if (isset($_GET['o']) && in_array($_GET['o'], array_keys($operations))) {
 				dataType: 'json',
 				success: function(data) {
 					if (data.status == '1') {
-                        $('#quantity').focus();
-					} else if (data.status == '0') {
-                        $('#check-modal').modal('show');
-					} else if (data.status == '2') {
-                        $('#item').autocomplete('disable');
+						$('#quantity').focus();
+					}
+					if (data.status == '0') {
+						$('#check-modal').modal('show');
+					}
+					if (data.status == '2') {
+						$('#item').autocomplete('disable');
 						$('#item').val(data.item.value);
 						$('#quantity').focus();
 						$('#item').autocomplete('enable');
