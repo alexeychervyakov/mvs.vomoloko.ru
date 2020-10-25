@@ -833,7 +833,7 @@ if(!($db===false)){
         if (!(typeof response.stat.avg_check === 'undefined') && !(response.stat.error > 0) ){
             var currentD = new Date();
             var startHappyHourD = new Date();
-            startHappyHourD.setHours(12,00,0); // 5.30 pm
+            startHappyHourD.setHours(08,00,0); // 5.30 pm
 
             if(currentD >= startHappyHourD ){
 
